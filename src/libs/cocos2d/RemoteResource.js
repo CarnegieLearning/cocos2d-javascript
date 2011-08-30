@@ -35,23 +35,24 @@ var RemoteResource = BObject.extend(/** @lends cocos.RemoteResource# */{
      * Load the remote resource via ajax
      */
     load: function () {
-        var xhr = new XMLHttpRequest();
         var self = this;
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState == 4) {
-                var path = self.get('path');
 
+        $.ajax({
+            url: this.get('url'),
+            success: function (data) {
+                var path = self.get('path');
+                
                 var r = __remote_resources__[path];
                 __resources__[path] = util.copy(r);
-                __resources__[path].data = xhr.responseText;
+                __resources__[path].data = data;
                 __resources__[path].meta.remote = true;
 
                 events.trigger(self, 'load', self);
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                events.trigger(self, 'fail', textStatus, errorThrown);
             }
-        };
-
-        xhr.open('GET', this.get('url'), true);  
-        xhr.send(null);
+        });
     }
 });
 

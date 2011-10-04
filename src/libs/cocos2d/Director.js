@@ -140,9 +140,15 @@ var Director = BObject.extend(/** @lends cocos.Director# */{
         function keyDown(evt) {
             this._keysDown = this._keysDown || {};
             eventDispatcher.keyDown(evt);
+            evt.preventDefault(); 
+            evt.cancelBubble = true;
+            return false;
         }
         function keyUp(evt) {
             eventDispatcher.keyUp(evt);
+            evt.preventDefault(); 
+            evt.cancelBubble = true;
+            return false;
         }
 
         document.documentElement.addEventListener('keydown', keyDown, false);

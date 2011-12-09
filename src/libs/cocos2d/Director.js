@@ -26,6 +26,15 @@ window.requestAnimFrame = (function (){
             };
 })();
 
+window.cancelRequestAnimFrame = ( function() {
+    return window.cancelAnimationFrame           ||
+        window.webkitCancelRequestAnimationFrame ||
+        window.mozCancelRequestAnimationFrame    ||
+        window.oCancelRequestAnimationFrame      ||
+        window.msCancelRequestAnimationFrame     ||
+        clearTimeout
+} )();
+
 var Director = BObject.extend(/** @lends cocos.Director# */{
     backgroundColor: 'rgb(0, 0, 0)',
     canvas: null,
@@ -37,9 +46,13 @@ var Director = BObject.extend(/** @lends cocos.Director# */{
     displayFPS: false,
     preloadScene: null,
     isReady: false,
+    buffer: null,
+    bufferCtx: null,
+    swallowKeys: true,
 
     // Time delta
     dt: 0,
+    add: 0,
     nextDeltaTimeZero: false,
     lastUpdate: 0,
 
@@ -85,6 +98,13 @@ var Director = BObject.extend(/** @lends cocos.Director# */{
 
         var context = canvas.getContext('2d');
         this.set('context', context);
+        
+        var buffer = document.createElement('canvas');
+        this.set('buffer', buffer);
+        buffer.setAttribute('width', view.clientWidth);
+        buffer.setAttribute('height', view.clientHeight);
+        
+        this.set('bufferCtx', buffer.getContext('2d'));
 
         if (FLIP_Y_AXIS) {
             context.translate(0, view.clientHeight);
@@ -136,19 +156,27 @@ var Director = BObject.extend(/** @lends cocos.Director# */{
         canvas.addEventListener('mousedown', mouseDown, false);
         canvas.addEventListener('mousemove', mouseMoved, false);
 
+        var that = this;
+        
         // Keyboard events
         function keyDown(evt) {
             this._keysDown = this._keysDown || {};
             eventDispatcher.keyDown(evt);
-            evt.preventDefault(); 
-            evt.cancelBubble = true;
-            return false;
+            
+            if(that.swallowKeys) {
+                evt.preventDefault(); 
+                evt.cancelBubble = true;
+                return false;
+            }
         }
         function keyUp(evt) {
             eventDispatcher.keyUp(evt);
-            evt.preventDefault(); 
-            evt.cancelBubble = true;
-            return false;
+            
+            if(that.swallowKeys) {
+                evt.preventDefault(); 
+                evt.cancelBubble = true;
+                return false;
+            }
         }
 
         document.documentElement.addEventListener('keydown', keyDown, false);
@@ -237,8 +265,11 @@ var Director = BObject.extend(/** @lends cocos.Director# */{
     },
 
     animate: function() {
-        this.drawScene();
-        window.requestAnimFrame(util.callback(this, 'animate'), this.canvas);
+        //this._animationTimer = setInterval(util.callback(this, 'drawScene'), 33);
+        if(this.drawScene != null) {
+            this.drawScene();
+            window.requestAnimFrame(util.callback(this, 'animate'), this.canvas);
+        }
     },
 
     /**
@@ -250,6 +281,9 @@ var Director = BObject.extend(/** @lends cocos.Director# */{
         if (this._animationTimer) {
             clearInterval(this._animationTimer);
             this._animationTimer = null;
+        }
+        else {
+            window.cancelRequestAnimFrame()
         }
     },
 
@@ -277,16 +311,22 @@ var Director = BObject.extend(/** @lends cocos.Director# */{
     drawScene: function () {
         this.calculateDeltaTime();
         
+        this.realDt = this.dt;
+        
+        if(this.dt > 0.133) {
+            this.dt /= 2;
+        }
+        if(this.dt > 0.066) {
+            this.dt /= 2;
+        }
+        
         if (!this.isPaused) {
             Scheduler.get('sharedScheduler').tick(this.dt);
         }
 
-
         var context = this.get('context');
-        context.fillStyle = this.get('backgroundColor');
-        context.fillRect(0, 0, this.winSize.width, this.winSize.height);
-        //this.canvas.width = this.canvas.width
-
+        //context.clearRect(0, 0, this.winSize.width, this.winSize.height);
+        this.get('bufferCtx').clearRect(0, 0, this.winSize.width, this.winSize.height);
 
         if (this._nextScene) {
             this.setNextScene();
@@ -300,8 +340,10 @@ var Director = BObject.extend(/** @lends cocos.Director# */{
             context.clip();
             context.closePath();
         }
-
-        this._runningScene.visit(context, rect);
+        
+        //this._runningScene.visit(context, rect);
+        this._runningScene.visit(this.get('bufferCtx'), rect);
+        context.drawImage(this.buffer, 0, 0);
 
         if (SHOW_REDRAW_REGIONS) {
             if (rect) {

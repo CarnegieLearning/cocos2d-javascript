@@ -5,7 +5,8 @@
 var util = require('util'),
     console = require('system').console,
     Timer = require('./Scheduler').Timer,
-    Scheduler = require('./Scheduler').Scheduler;
+    Scheduler = require('./Scheduler').Scheduler,
+    events = require('events');
 
 var ActionManager = BObject.extend(/** @lends cocos.ActionManager# */{
     targets: null,
@@ -162,6 +163,8 @@ var ActionManager = BObject.extend(/** @lends cocos.ActionManager# */{
                     currentTarget.currentAction.step(dt);
 
                     if (currentTarget.currentAction.get('isDone')) {
+                        events.trigger(currentTarget.currentAction, 'actionComplete');
+                    
                         currentTarget.currentAction.stop();
 
                         var a = currentTarget.currentAction;

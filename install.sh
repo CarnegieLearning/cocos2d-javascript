@@ -1,8 +1,10 @@
 #!/bin/sh
 
-if which npm &> /dev/null
+# vim:ff=unix
+
+if which npm > /dev/null
 then
-    echo "NPM is installed. You should probably install cocos2d-javascript as an npm package using this command instead:\n\n    npm install -g .\n"
+    echo "NPM is installed. You should probably install Cocos2D JavaScript as an npm package using this command instead:\n\n    npm install -g .\n"
 
     read -p "Continue anyway? (y/n) : " yn
     case $yn in
@@ -27,7 +29,9 @@ mkdir -p "$install_to"
 
 cd $DIR
 
-IFS=$'\n'
+# Set Internal Field Separator to new lines only
+IFS=$'
+'
 for file in `find * \( ! -regex '.*/\..*' \) -type f`
 do
     dst="$install_to/$file"
@@ -39,12 +43,13 @@ do
 
     cp "$file" "$dst"
 done
+unset IFS
 
 cd -
 
 echo "All files copied."
 
-ln -s "$install_to/bin/cocos.sh" "/usr/local/bin/cocos"
+ln -s "$install_to/bin/cocos" "/usr/local/bin/cocos"
 
 echo "Symlinked 'cocos' executable to /usr/local/bin/cocos\n"
 

@@ -163,9 +163,9 @@ var ActionManager = BObject.extend(/** @lends cocos.ActionManager# */{
                     currentTarget.currentAction.step(dt);
 
                     if (currentTarget.currentAction.get('isDone')) {
-                        events.trigger(currentTarget.currentAction, 'actionComplete');
-                    
                         currentTarget.currentAction.stop();
+                    
+                        events.trigger(currentTarget.currentAction, 'actionComplete');
 
                         var a = currentTarget.currentAction;
                         currentTarget.currentAction = null;
